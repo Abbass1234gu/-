@@ -1,0 +1,161 @@
+from os import system
+from requests import Session
+from json import loads, JSONDecodeError
+from uuid import uuid4
+from time import sleep
+import sys
+from colorama import Fore
+from hashlib import md5
+from requests.exceptions import ReadTimeout
+from random import choice
+import datetime
+import datetime
+from pyfiglet import figlet_format
+
+
+system("clear")
+Creator = "Telegram: @Khabalo_o rubika: @NothingReal"
+ffc = figlet_format(Creator)
+print(ffc , "\\n\\n")
+Creator = "t.me/NothingReal"
+restore_key = input('Enter your code: ')
+
+
+session = Session()
+session.headers.update({'User-Agent' : 'Dalvik/2.1.0 (Linux; U; Android 10; PO-X1100 Build/RP1A.200320.012)' , 'Accept-Encoding' : 'gzip' , 'Content-Type' : 'application/x-www-form-urlencoded; charset=UTF-8'})
+cr = Creator
+
+
+
+def decode(data):
+  final_string = ''
+  for key in data.keys():
+    final_string += f"{key}={data[key]}&"
+  return final_string[:-1]
+
+
+def load():
+  data = {'game_version' : '1.7.10655' , 'device_name' : 'unknown' , 'os_version' : '10' , 'model' : 'SM-A750F' , 'udid' : str(uuid4().int) , 'store_type' : 'iraqapps' , 'restore_key' : restore_key , 'os_type' : 2}
+  return loads(session.post('http://iran.fruitcraft.ir/player/load' , decode(data) , timeout = 3).text)
+
+
+def getenemys():
+  try:
+    return sorted(loads(session.get('http://iran.fruitcraft.ir/battle/getopponents').text)['data']['players'] , key = lambda x: x['def_power'])
+  except Exception as e:
+    pass
+    return None
+
+
+def battle(opponent_id , q , cards , attacks_in_today , hero_id = None):
+  data = {'opponent_id': opponent_id , 'check' : md5(str(q).encode()).hexdigest() , 'cards' : str(cards).replace(' ', '') , 'attacks_in_today' : attacks_in_today}
+  if hero_id: data['hero_id'] = hero_id
+  return loads(session.get('http://iran.fruitcraft.ir/battle/battle?' + decode(data) , timeout = 5).text)
+
+
+def update_cards():
+  global cards
+  if cards:
+    cards.append(cards[0])
+    cards.pop(0)
+
+
+load = load()
+
+cards = [i['id'] for i in load['data']['cards'] if i['power'] < 100]
+
+
+if len(cards) < 20:
+  print("Shoma Kamtar az 20 card Darid!!!")
+  exit()
+
+
+
+def attack_offline():
+  q = load['data']['q']
+  win = 0
+  lost = 0
+  xp = 0
+  doon = 0
+  attacked = {}
+  sys.stdout.write(f"\r• Win: {Fore.GREEN}{str(win)}{Fore.RESET} --- • Lose: {Fore.RED}{str(lost)}{Fore.RESET} --- • Xp: {str(xp)} --- • Doon: {str(doon)}")
+  sys.stdout.flush()
+  while "ingR" in cr:
+    enemys = getenemys()
+    while not enemys:
+      enemys = getenemys()
+    sleep(3)
+    for enemy in enemys:
+      if enemy['id'] not in attacked:
+        attacked[enemy['id']] = 1
+      if (not enemy['def_power']) or attacked[enemy['id']] >= 50:
+        continue
+      if int(enemy['def_power']) > power:
+        break
+      for i in range(50):
+    if attacked[enemy['id']] >= 50:
+        continue
+    cards = load['data']['cards']  # دریافت لیست کارت‌ها
+    strongest_cards = select_strongest_cards(cards)  # انتخاب 4 کارت قوی‌تر
+    heroes = load['data']['heroes']  # دریافت لیست قهرمانان
+    active_hero_id = select_active_hero(heroes)  # انتخاب قهرمان فعال
+    data = {
+        "cards": str([card['id'] for card in strongest_cards]).replace(' ', ''),
+        "attacks_in_today": 5,
+        "check": null,
+        "opponent_id": enemy['id'],
+        "hero_id": active_hero_id
+    }
+    try:
+        q = battle(enemy['id'], q, data['cards'], attacked[enemy['id']])
+        if q['data']['score_added'] < 0:
+            attacked[enemy['id']] = 200
+            lost += 1
+            print(q)
+        else:
+            win += 1
+            xp += q["data"]["xp_added"]
+            doon += q['data']['score_added']
+            q = q['data']['q']
+            sys.stdout.write(f"\r• Win: {Fore.GREEN}{str(win)}{Fore.RESET} --- • Lose: {Fore.RED}{str(lost)}{Fore.RESET} --- • Xp: {str(xp)} --- • Doon: {str(doon)}")
+            sys.stdout.flush()
+    except KeyError:
+        pass
+    except JSONDecodeError:
+        sleep(25)
+        print("\\n25 s\\n ")
+        pass
+    except KeyboardInterrupt:
+        exit()
+    except ReadTimeout:
+        pass
+    except Exception as e:
+        print(e, type(e))
+        exit()
+    if choice([True, False]):
+        attacked[enemy['id']] += 1
+    update_cards()
+break
+
+
+def select_strongest_cards(cards):
+    strongest_cards = []
+    for _ in range(4):
+        strongest_card = max(cards, key=lambda card: card['power'])
+        strongest_cards.append(strongest_card)
+        cards.remove(strongest_card)
+    return strongest_cards
+
+
+def select_active_hero(heroes):
+    active_hero = max(heroes, key=lambda hero: hero['power'])
+    return active_hero['id']
+
+
+while True:
+    try:
+        power = int(input('Enter Your Power: '))
+    except:
+        pass
+    print("\\n"*4)
+    attack_offline()
